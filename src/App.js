@@ -18,21 +18,21 @@ function App() {
           <Route
             path="/dashboard"
             element={
-              <PrivateRoute>
+              // <PrivateRoute>
                 <DashboardLayout>
                   <Dashboard />
                 </DashboardLayout>
-              </PrivateRoute>
+              // </PrivateRoute>
             }
           />
           <Route
             path="/applications"
             element={
-              <PrivateRoute>
+              // <PrivateRoute>
                 <DashboardLayout>
                   <Applications />
                 </DashboardLayout>
-              </PrivateRoute>
+              // </PrivateRoute>
             }
           />
           <Route path="/application/:id" element={<ApplicationDetails />} />
