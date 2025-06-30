@@ -39,9 +39,7 @@ const CarVerificationForm = ({ application, setActiveTab, setApplication }) => {
     setIsLoading(true);
     try {
       const endpoint =
-        application?.formType === "Salaried"
-          ? "https://credit-port-backend.vercel.app/v1/salaried/individual/update/status"
-          : "https://credit-port-backend.vercel.app/v1/business/individual/update/status";
+        "https://credit-port-backend.vercel.app/v1/salaried/individual/update/status";
 
       await axios.put(endpoint, {
         id: formData.id,
@@ -402,13 +400,7 @@ const CarVerificationForm = ({ application, setActiveTab, setApplication }) => {
 
         <div className="card-footer text-end">
           <button className="btn btn-secondary me-2">Cancel</button>
-          <button
-            className="btn btn-primary"
-            onClick={handleStatusSubmission}
-            disabled={
-              isStatusLoading || formData.verificationStatus === "pending"
-            }
-          >
+          <button className="btn btn-primary" onClick={handleStatusSubmission}>
             {isStatusLoading ? "Saving..." : "Save & Continue"}
           </button>
         </div>

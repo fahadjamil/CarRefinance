@@ -1,6 +1,17 @@
 import { useState } from "react";
 import axios from "axios";
 import moment from "moment";
+import {
+  Form,
+  Button,
+  Row,
+  Col,
+  Card,
+  Badge,
+  Tabs,
+  Tab,
+  Alert,
+} from "react-bootstrap";
 
 export function InspectionReportForm({
   application,
@@ -23,12 +34,13 @@ export function InspectionReportForm({
     inspectionStatus: application?.inspectionStatus,
     comments: "",
     pakwheelsReportId: "",
+    AssetInspectiondetails:
+      application?.CarInspection?.asset_id === application?.Asset?.id
+        ? application.Asset
+        : null,
   });
 
   const [isLoading, setIsLoading] = useState(false);
-  const [isFetchingReport, setIsFetchingReport] = useState(false);
-  const [reportFetched, setReportFetched] = useState(false);
-  const [pdfUrl, setPdfUrl] = useState(null);
   const [apiError, setApiError] = useState(null);
 
   const handleChange = (field, value) => {
@@ -48,53 +60,16 @@ export function InspectionReportForm({
     }, 1500);
   };
 
-  const fetchPakWheelsReport = async () => {
-    if (!formData.pakwheelsReportId) {
-      setApiError("Please enter a valid PakWheels Report ID");
-      return;
-    }
-
-    setIsFetchingReport(true);
-    setApiError(null);
-
-    try {
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-      setPdfUrl("/placeholder-report.pdf");
-      setReportFetched(true);
-      setFormData((prev) => ({
-        ...prev,
-        inspectionDate: "2023-04-15T10:00",
-        inspectionLocation: "johar_town",
-        inspectorName: "Ahmed Khan",
-        vehicleCondition: "good",
-        mileage: "45000",
-        bodyCondition: "good",
-        engineCondition: "excellent",
-        interiorCondition: "good",
-        tiresCondition: "fair",
-        accidentHistory: "none",
-        estimatedValue: "1850000",
-      }));
-    } catch (error) {
-      console.error("Error fetching PakWheels report:", error);
-      setApiError(
-        "Failed to fetch report from PakWheels. Please try again or contact support."
-      );
-    } finally {
-      setIsFetchingReport(false);
-    }
-  };
-
   const requiredFields = [
     "inspectionDate",
     "inspectionLocation",
     "inspectorName",
     "vehicleCondition",
     "mileage",
-    "bodyCondition",
-    "engineCondition",
-    "interiorCondition",
-    "tiresCondition",
+    // "bodyCondition",
+    // "engineCondition",
+    // "interiorCondition",
+    // "tiresCondition",
     "accidentHistory",
     "estimatedValue",
   ];
@@ -113,34 +88,31 @@ export function InspectionReportForm({
     if (!validateForm()) return;
 
     setIsLoading(true);
-    setApiError("");
+    setApiError(null);
+    console.log(formData);
 
     try {
       await axios.post(
         "https://credit-port-backend.vercel.app/v1/car/inspection/create/report",
         formData
       );
-      alert("Inspection report submitted successfully!");
 
       await axios.put(
-        application?.formType === "Salaried"
-          ? "https://credit-port-backend.vercel.app/v1/salaried/individual/update/status"
-          : "https://credit-port-backend.vercel.app/v1/business/individual/update/status",
+        "https://credit-port-backend.vercel.app/v1/salaried/individual/update/status",
         {
           id: application?.id,
           notes: formData.comments,
           inspectionStatus: "verified",
-          statusKey: "contract",
+          statusKey: "credit_score",
         }
       );
 
       setApplication("verified");
-      setActiveTab("contract");
+      setActiveTab("credit");
       setFormData((prev) => ({ ...prev, inspectionStatus: "pending" }));
     } catch (error) {
       console.error(error);
-      setApiError("Something went wrong while submitting.");
-      alert(
+      setApiError(
         "Submission failed: " +
           (error.response?.data?.message || "Unknown error")
       );
@@ -154,137 +126,149 @@ export function InspectionReportForm({
     : "";
 
   return (
-    <form onSubmit={handleSubmit}>
-      <div className="mb-4">
-        {/* Tabs */}
-        <ul className="nav nav-tabs" role="tablist">
-          {/* <li className="nav-item">
-            <button className="nav-link active" data-bs-toggle="tab" data-bs-target="#pakwheels">PakWheels API Integration</button>
-          </li> */}
-          <li className="nav-item">
-            <button
-              className="nav-link active"
-              
-              data-bs-toggle="tab"
-              data-bs-target="#manual"
-            >
-              Manual Entry
-            </button>
-          </li>
-        </ul>
-
-        <div className="tab-content border border-top-0 p-4">
-          {/* PakWheels Tab */}
-          {/* <div className="tab-pane fade show active" id="pakwheels">
-            <div className="alert alert-primary">
-              <strong>PakWheels Integration:</strong> Enter the report ID to fetch.
-            </div>
+    <>
+      <div className="col-md-6 my-3">
+        <div className="card">
+          <div className="card-header d-flex align-items-center gap-2">
+            <i className="bi bi-search text-primary"></i>
+            <h5 className="mb-0">Applicant Inspection Information</h5>
+          </div>
+          <div className="card-body">
             <div className="row g-3">
-              <div className="col-md-6">
-                <label className="form-label">PakWheels Report ID</label>
-                <input type="text" className="form-control" value={formData.pakwheelsReportId} onChange={e => handleChange("pakwheelsReportId", e.target.value)} />
+              <div className="col-6">
+                <small className="text-muted">Make</small>
+                <p>{formData.AssetInspectiondetails?.make?.name || "N/A"}</p>
               </div>
-              <div className="col-md-6 d-flex align-items-end">
-                <button type="button" className="btn btn-primary" disabled={isFetchingReport} onClick={fetchPakWheelsReport}>
-                  {isFetchingReport ? "Fetching..." : "Fetch Report"}
-                </button>
+              <div className="col-6">
+                <small className="text-muted">Model</small>
+                <p>{formData.AssetInspectiondetails?.model?.name || "N/A"}</p>
               </div>
-            </div>
-            {apiError && <div className="alert alert-danger mt-3">{apiError}</div>}
-            {reportFetched && pdfUrl && (
-              <div className="mt-4">
-                <h5>PakWheels Report</h5>
-                <div className="btn-group mb-3">
-                  <a className="btn btn-outline-secondary btn-sm" href={pdfUrl} target="_blank" rel="noopener noreferrer">Open</a>
-                  <a className="btn btn-outline-secondary btn-sm" href={pdfUrl} download>Download</a>
-                </div>
-                <iframe src={pdfUrl} style={{ width: "100%", height: "500px", border: "none" }} title="PDF Viewer" />
+              <div className="col-6">
+                <small className="text-muted">Year</small>
+                <p>{formData.AssetInspectiondetails?.year?.year || "N/A"}</p>
               </div>
-            )}
-          </div> */}
-
-          {/* Manual Entry Tab */}
-          <div className="tab-pane fade show active" id="manual">
-            <div className="row g-3">
-              <div className="col-md-6">
-                <label className="form-label">Inspection Date</label>
-                <input
-                  type="datetime-local"
-                  className="form-control"
-                  value={inspectionDateFormatted}
-                  onChange={(e) =>
-                    handleChange("inspectionDate", e.target.value)
-                  }
-                />
+              <div className="col-6">
+                <small className="text-muted">Date</small>
+                <p>
+                  {application?.CarInspection?.date
+                    ? moment(application?.CarInspection?.date).format(
+                        "DD/MM/YYYY"
+                      )
+                    : "N/A"}
+                </p>
               </div>
-              <div className="col-md-6">
-                <label className="form-label">Inspection Location</label>
-                <select
-                  className="form-select"
-                  value={formData.inspectionLocation}
-                  onChange={(e) =>
-                    handleChange("inspectionLocation", e.target.value)
-                  }
-                >
-                  <option>Select Location</option>
-                  <option value="johar_town">Johar Town</option>
-                  <option value="gulberg">Gulberg</option>
-                  <option value="dha">DHA</option>
-                </select>
-              </div>
-              <div className="col-md-6">
-                <label className="form-label">Inspector Name</label>
-                <input
-                  type="text"
-                  className="form-control"
-                  value={formData.inspectorName}
-                  onChange={(e) =>
-                    handleChange("inspectorName", e.target.value)
-                  }
-                />
-              </div>
-              <div className="col-md-6">
-                <label className="form-label">Mileage (km)</label>
-                <input
-                  type="number"
-                  className="form-control"
-                  value={formData.mileage}
-                  onChange={(e) => handleChange("mileage", e.target.value)}
-                />
-              </div>
-              <div className="col-md-6">
-                <label className="form-label">Estimated Value (PKR)</label>
-                <input
-                  type="number"
-                  className="form-control"
-                  value={formData.estimatedValue}
-                  onChange={(e) =>
-                    handleChange("estimatedValue", e.target.value)
-                  }
-                />
-              </div>
-              <div className="col-md-6">
-                <label className="form-label">Vehicle Condition</label>
-                <select
-                  className="form-select"
-                  value={formData.vehicleCondition}
-                  onChange={(e) =>
-                    handleChange("vehicleCondition", e.target.value)
-                  }
-                >
-                  <option>Select</option>
-                  <option value="excellent">Excellent</option>
-                  <option value="good">Good</option>
-                  <option value="fair">Fair</option>
-                  <option value="poor">Poor</option>
-                </select>
+              <div className="col-12">
+                <small className="text-muted">Inspection Status</small>
+                <p>{application?.CarInspection?.status || "N/A"}</p>
               </div>
             </div>
-
-            <div className="mt-4">
-              <label className="form-label">Accident History</label>
-              <select
-                className="form-select"
+          </div>
+        </div>
+      </div>
+      <Form onSubmit={handleSubmit}>
+        <Tabs defaultActiveKey="manual" className="mb-3">
+          <Tab eventKey="manual" title="Inspection Report Manual Entry">
+            <Row className="mb-3">
+              <Col md={6}>
+                <Form.Group controlId="inspectionDate">
+                  <Form.Label>Inspection Date</Form.Label>
+                  <Form.Control
+                    type="datetime-local"
+                    value={inspectionDateFormatted}
+                    onChange={(e) =>
+                      handleChange("inspectionDate", e.target.value)
+                    }
+                  />
+                </Form.Group>
+              </Col>
+              <Col md={6}>
+                <Form.Group controlId="inspectionLocation">
+                  <Form.Label>Inspection Location</Form.Label>
+                  <Form.Select
+                    value={formData.inspectionLocation}
+                    onChange={(e) =>
+                      handleChange("inspectionLocation", e.target.value)
+                    }
+                  >
+                    <option>Select Location</option>
+                    <option value="johar_town">Johar Town</option>
+                    <option value="gulberg">Gulberg</option>
+                    <option value="dha">DHA</option>
+                  </Form.Select>
+                </Form.Group>
+              </Col>
+              <Col md={6}>
+                <Form.Group controlId="inspectorName">
+                  <Form.Label>Inspector Name</Form.Label>
+                  <Form.Control
+                    type="text"
+                    value={formData.inspectorName}
+                    onChange={(e) =>
+                      handleChange("inspectorName", e.target.value)
+                    }
+                  />
+                </Form.Group>
+              </Col>
+              <Col md={6}>
+                <Form.Group controlId="mileage">
+                  <Form.Label>Mileage (km)</Form.Label>
+                  <Form.Control
+                    type="number"
+                    value={formData.mileage}
+                    onChange={(e) => handleChange("mileage", e.target.value)}
+                  />
+                </Form.Group>
+              </Col>
+              <Col md={6}>
+                <Form.Group controlId="estimatedValue">
+                  <Form.Label>Estimated Value (PKR)</Form.Label>
+                  <Form.Control
+                    type="number"
+                    value={formData.estimatedValue}
+                    onChange={(e) =>
+                      handleChange("estimatedValue", e.target.value)
+                    }
+                  />
+                </Form.Group>
+              </Col>
+               <Col md={6}>
+                <Form.Group controlId="vehicleCondition">
+                  <Form.Label>Vehicle Condition</Form.Label>
+                  <Form.Select
+                    value={formData.vehicleCondition}
+                    onChange={(e) =>
+                      handleChange("vehicleCondition", e.target.value)
+                    }
+                  >
+                    <option>Select</option>
+                    <option value="excellent">Excellent</option>
+                    <option value="good">Good</option>
+                    <option value="fair">Fair</option>
+                    <option value="poor">Poor</option>
+                  </Form.Select>
+                </Form.Group>
+              </Col>
+              <Col md={6}>
+                <Form.Group controlId="vehicleCondition">
+                  <Form.Label>Vehicle Condition</Form.Label>
+                  <Form.Select
+                    value={formData.vehicleCondition}
+                    onChange={(e) =>
+                      handleChange("vehicleCondition", e.target.value)
+                    }
+                  >
+                    <option>Select</option>
+                    <option value="excellent">Excellent</option>
+                    <option value="good">Good</option>
+                    <option value="fair">Fair</option>
+                    <option value="poor">Poor</option>
+                  </Form.Select>
+                </Form.Group>
+              </Col>
+            </Row>
+            <Form.Group className="mb-4" controlId="accidentHistory">
+              <Form.Label>Accident History</Form.Label>
+              <Form.Select
                 value={formData.accidentHistory}
                 onChange={(e) =>
                   handleChange("accidentHistory", e.target.value)
@@ -294,48 +278,52 @@ export function InspectionReportForm({
                 <option value="none">No Accidents</option>
                 <option value="minor">Minor Accidents</option>
                 <option value="major">Major Accidents</option>
-              </select>
-            </div>
-          </div>
-        </div>
-      </div>
+              </Form.Select>
+            </Form.Group>
+          </Tab>
+        </Tabs>
 
-      <div className="card mb-4">
-        <div className="card-body">
-          <h5 className="card-title">Inspection Status</h5>
-          <span
-            className={`badge ${
-              formData.inspectionStatus === "verified"
-                ? "bg-success"
-                : formData.inspectionStatus === "pending"
-                ? "bg-warning text-dark"
-                : "bg-secondary"
-            }`}
-          >
-            {formData.inspectionStatus || "Pending"}
-          </span>
-          <div className="mt-3">
-            <label className="form-label">Inspector Comments</label>
-            <textarea
-              className="form-control"
-              rows="4"
-              placeholder="Add inspection comments..."
-              value={formData.comments}
-              onChange={(e) => handleChange("comments", e.target.value)}
-            />
-          </div>
-        </div>
-      </div>
+        <Card className="mb-4">
+          <Card.Body>
+            <Card.Title>Inspection Status</Card.Title>
+            <Badge
+              bg={
+                formData.inspectionStatus === "verified"
+                  ? "success"
+                  : formData.inspectionStatus === "pending"
+                  ? "warning"
+                  : "secondary"
+              }
+              className="mb-3"
+            >
+              {formData.inspectionStatus || "Pending"}
+            </Badge>
 
-      <div className="d-flex justify-content-end gap-2">
-        <button type="button" className="btn btn-outline-secondary">
-          Cancel
-        </button>
-        <button type="submit" className="btn btn-primary" disabled={isLoading}>
-          {isLoading ? "Saving..." : "Save Inspection Report"}
-        </button>
-      </div>
-    </form>
+            <Form.Group controlId="comments">
+              <Form.Label>Inspector Comments</Form.Label>
+              <Form.Control
+                as="textarea"
+                rows={4}
+                placeholder="Add inspection comments..."
+                value={formData.comments}
+                onChange={(e) => handleChange("comments", e.target.value)}
+              />
+            </Form.Group>
+          </Card.Body>
+        </Card>
+
+        {apiError && <Alert variant="danger">{apiError}</Alert>}
+
+        <div className="d-flex justify-content-end gap-2 my-2">
+          <Button variant="outline-secondary" type="button">
+            Cancel
+          </Button>
+          <Button variant="primary" type="submit" disabled={isLoading}>
+            {isLoading ? "Saving..." : "Save Inspection Report"}
+          </Button>
+        </div>
+      </Form>
+    </>
   );
 }
 
